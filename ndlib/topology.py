@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 config = dict()
 
-def crawl(seeds, username, password, outf=None):
+def crawl(seeds, username, password, outf=None, dout=None):
     'Crawl CDP/LLDP Neighbors to build a topology'
 
     # Queue for devices to scrape next
@@ -45,6 +45,7 @@ def crawl(seeds, username, password, outf=None):
         devices[s]['remote_device_id'] = s
         devices[s]['ipv4'] = s
         devices[s]['os'] = 'cisco_nxos'
+        devices[s]['platform'] = 'Unknown'
         distances[s] = 0
 
     # Outer Queue, starts inner queue and then adds all unvisited neighbors to queue when
@@ -74,7 +75,9 @@ def crawl(seeds, username, password, outf=None):
                 nd_thread.start()
 
         # Join all threads from last iteration and warn if problems joining threads
+        logger.info('Joining all active threads')
         main_thread = threading.currentThread()
+        wait_timer = 15
         for some_thread in threading.enumerate():
             if some_thread != main_thread:
                 tid = str(some_thread.ident)
@@ -83,7 +86,8 @@ def crawl(seeds, username, password, outf=None):
                 if tid not in joined:
                     joined.append(tid)
                     logger.debug('Joining Thread: %s', tid)
-                    some_thread.join(timeout=10)
+                    some_thread.join(timeout=wait_timer)
+                    wait_timer = 1
                 else:
                     logger.warning('Thread running long time, ignoring: %s: %s', tid, str(some_thread))
 
@@ -127,7 +131,7 @@ def crawl(seeds, username, password, outf=None):
         ncount += 1
     logger.info('Total neighbors: %s', str(ncount))
 
-    # Output CSV File
+    # Output Neighbor CSV File
     if outf:
         fieldnames = ['local_device_id', 'distance', 'remote_device_id', 'platform', 'local_int', \
                       'remote_int', 'ipv4', 'os']
@@ -137,6 +141,18 @@ def crawl(seeds, username, password, outf=None):
         for n in neighbors:
             dw.writerow(n)
         f.close()
+
+    if dout:
+        fieldnames = ['device_id', 'ipv4', 'platform', 'os']
+        f = open(dout, 'w')
+        dw = csv.DictWriter(f, fieldnames=fieldnames)
+        dw.writeheader()
+        for d in devices:
+            dd = {'device_id': devices[d]['remote_device_id'], 'ipv4': devices[d]['ipv4'], \
+                  'platform': devices[d]['platform'], 'os': devices[d]['os']}
+            dw.writerow(dd)
+            #print(d, devices[d]['remote_device_id'], devices[d]['ipv4'], devices[d]['os'], devices[d]['platform'])
+
 
 def gather_nd(**kwargs):
     'Gather neighbors from device'

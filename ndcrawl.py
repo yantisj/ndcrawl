@@ -12,7 +12,8 @@ CONFIG_FILE = 'ndcrawl.ini'
 
 parser = argparse.ArgumentParser(description='Discover Network Topology via CDP/LLDP')
 parser.add_argument('-seed', metavar="switch1[,switch2]", help="Seed devices to start crawl")
-parser.add_argument('-out_file', metavar="file", help="Output Neighbors to File", type=str)
+parser.add_argument('-nei_file', metavar="file", help="Output Neighbors to File", type=str)
+parser.add_argument('-dev_file', metavar="file", help="Output Neighbors to File", type=str)
 parser.add_argument("--user", metavar='username', help="Username to execute as",
                     type=str)
 parser.add_argument("--conf", metavar='file', help="Alternate Config File",
@@ -43,9 +44,7 @@ topology.config = config
 init_logging(log_level, config['main']['log_file'])
 
 if args.seed:
-    outf = None
-    if args.out_file:
-        outf = args.out_file
+
     if not args.user:
         logger.warning('Must provide a username')
         sys.exit(1)
@@ -53,4 +52,4 @@ if args.seed:
 
     seeds = args.seed.split(',')
 
-    topology.crawl(seeds, args.user, password, outf)
+    topology.crawl(seeds, args.user, password, outf=args.nei_file, dout=args.dev_file)

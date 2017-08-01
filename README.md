@@ -15,7 +15,7 @@ devices.
 
 * Note: The initial devices should have the same device ID in the cdp neighbors
 
-```./ndcrawl.py -seed core1.domain.com,core2.domain.com --user yantisj -out nd.csv --debug 1```
+```./ndcrawl.py -seed core1.domain.com,core2.domain.com --user yantisj -nei_file nd.csv -dev_file devices.csv --debug 1```
 
 
 ## Output Example
