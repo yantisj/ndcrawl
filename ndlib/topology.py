@@ -82,7 +82,7 @@ def crawl(seeds, username, password, outf=None):
                     tid = qtrack[tid]
                 if tid not in joined:
                     joined.append(tid)
-                    logger.info('Joining Thread: %s', tid)
+                    logger.debug('Joining Thread: %s', tid)
                     some_thread.join(timeout=10)
                 else:
                     logger.warning('Thread running long time, ignoring: %s: %s', tid, str(some_thread))
@@ -210,7 +210,11 @@ def parse_cdp(cdp, device):
         ios = re.search(r'Cisco IOS', l)
         if devid:
             if current:
-                nd.append(current.copy())
+                if not re.search(config['main']['ignore_regex'], current['remote_device_id']):
+                    nd.append(current.copy())
+                else:
+                    logger.warning('Regex Ignore on %s neighbor from %s', \
+                                    current['remote_device_id'], current['local_device_id'])
             current = dict()
             rname = devid.group(1)
             current['local_device_id'] = dname
@@ -239,6 +243,11 @@ def parse_cdp(cdp, device):
             current['os'] = 'cisco_ios'
 
     if current:
-        nd.append(current.copy())
+        if not re.search(config['main']['ignore_regex'], current['remote_device_id']):
+            nd.append(current.copy())
+        else:
+            logger.warning('Regex Ignore on %s neighbor from %s', \
+                            current['remote_device_id'], current['local_device_id'])
+
 
     return nd
