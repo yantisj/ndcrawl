@@ -1,0 +1,7 @@
+.env
+venv/
+start-env.sh
+*.pyc
+*.log
+output/
+*.csv
