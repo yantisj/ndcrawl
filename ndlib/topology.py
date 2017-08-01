@@ -150,47 +150,28 @@ def gather_nd(**kwargs):
     logger.info('Gathering Neighbors on %s: %s', dname, tid)
 
     nd = dict()
-    ses = None
 
+    # Try to connect to device id first
     try:
-
         nd = scrape_device(device, dname, kwargs['username'], kwargs['password'])
-        # ses = execute.get_session(dname, device['os'], kwargs['username'], kwargs['password'])
-
-        # cdp = execute.send_command(ses, 'show cdp neighbor detail', dname)
-
-        # if device['os'] == 'cisco_nxos':
-        #     nd = parse_cdp(cdp, device)
-        # elif device['os'] == 'cisco_ios':
-        #     nd = parse_cdp(cdp, device)
-        # else:
-        #     logger.warning('Unknown OS Type to Parse on %s: %s', dname, device['os'])
-        # for n in nd:
-        #     logger.debug('Found Neighbor %s on %s', n, dname)
-        # ses.disconnect()
 
     except Exception as e:
-        logger.info('Failed to connect to %s, trying %s', dname, device['ipv4'])
         if device['ipv4'] == 'Unknown':
             logger.warning('Connection to %s failed and IPv4 is Unknown', dname)
-        else:
-            try:
-                ses = execute.get_session(device['ipv4'], device['os'], kwargs['username'], kwargs['password'])
 
-                cdp = execute.send_command(ses, 'show cdp neighbor detail', dname)
-                nd = parse_cdp(cdp, device)
-                for n in nd:
-                    logger.debug('Found Neighbor %s on %s', n, dname)
-                ses.disconnect()
+        # Try IPv4 Address
+        else:
+            logger.info('Failed to connect to %s, trying %s', dname, device['ipv4'])
+            try:
+                nd = scrape_device(device, device['ipv4'], kwargs['username'], kwargs['password'])
             except Exception as e:
                 logger.warning('Failed to scrape %s: %s', dname, str(e))
     if nd:
         out_q.put(nd)
-    ses = None
     logger.info('Completed Scraping %s: %s', dname, tid)
 
 def scrape_device(device, host, username, password):
-    """ Scrape a device and return the results """
+    """ Scrape a device and return the results as list of neighbors """
 
     dname = device['remote_device_id']
 
@@ -204,6 +185,7 @@ def scrape_device(device, host, username, password):
         nd = parse_cdp(cdp, device)
     else:
         logger.warning('Unknown OS Type to Parse on %s: %s', dname, device['os'])
+
     for n in nd:
         logger.debug('Found Neighbor %s on %s', n, dname)
     ses.disconnect()
