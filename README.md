@@ -1,15 +1,15 @@
-# Work in progress CDP crawler for Cisco networks
+# CDP/LLDP crawler for Cisco networks
 
-This is experimental at the moment, and mostly written as an exercise for fun.
-Uses netmiko and some seed devices to scrape your network and output a CSV file
-of all neighbors from each device.
+This is experimental at the moment. Uses netmiko and some seed devices to scrape
+your network and output CSV files of all neighbor topology data, as well as a
+device list file. Uses threaded connections at each iteration, moving out from
+seed devices to next level of devices until all devices are discovered.
 
 Uses a BFS algorithm with netmiko, and calculates distances from seed devices.
-Only visits each device once. Currently only works with CDP but could easily be
-modified to do LLDP as well.
-
-Only supports NXOS and IOS at the moment. Could be modified easily for other
-devices.
+Only visits each device once. Currently only works with SSH access to Cisco IOS
+and NXOS devices. Will gather all neighbors and devices found, but can only
+scrape cisco devices at the moment. Other devices supported by Netmiko could be
+added easily.
 
 ## Usage Example: Scrape network starting with the core devices
 
@@ -18,7 +18,7 @@ devices.
 ```./ndcrawl.py -seed core1.domain.com,core2.domain.com --user yantisj -nei_file nd.csv -dev_file devices.csv --debug 1```
 
 
-## Neighbor Output Example
+## Neighbor List Output Example
 ```
 local_device_id,distance,remote_device_id,platform,local_int,remote_int,ipv4,os
 core1.domain.com,0,mdcoobsw1.domain.com,WS-C4948,mgmt0,GigabitEthernet1/1,10.25.9.1,cisco_ios

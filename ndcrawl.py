@@ -14,6 +14,8 @@ parser = argparse.ArgumentParser(description='Discover Network Topology via CDP/
 parser.add_argument('-seed', metavar="switch1[,switch2]", help="Seed devices to start crawl")
 parser.add_argument('-nei_file', metavar="file", help="Output Neighbors to File", type=str)
 parser.add_argument('-dev_file', metavar="file", help="Output Neighbors to File", type=str)
+parser.add_argument("--seed_os", metavar='cisco_nxos', help="Netmiko OS type for seed devices",
+                    type=str)
 parser.add_argument("--user", metavar='username', help="Username to execute as",
                     type=str)
 parser.add_argument("--max_crawl", metavar='int', help="Max devices to crawl (default 10000)",
@@ -50,6 +52,9 @@ init_logging(log_level, config['main']['log_file'])
 if args.max_crawl:
     config['main']['max_crawl'] = str(args.max_crawl)
 
+if args.seed_os:
+    config['main']['seed_os'] = args.seed_os
+
 if args.seed:
 
     if not args.user:
@@ -60,3 +65,5 @@ if args.seed:
     seeds = args.seed.split(',')
 
     topology.crawl(seeds, args.user, password, outf=args.nei_file, dout=args.dev_file)
+else:
+    parser.print_help()
