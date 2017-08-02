@@ -4,7 +4,7 @@ from logging.handlers import DatagramHandler
 
 logger = logging.getLogger(__name__)
 
-def init_logging(log_level, log_file):
+def init_logging(log_level, log_file, quiet):
     'Initialize Logging Globally'
 
     # Specify our log format for handlers
@@ -17,11 +17,12 @@ def init_logging(log_level, log_file):
     # Control log levels at log handler level
     root_logger.setLevel(logging.DEBUG)
 
-    # Console Handler (always use log_level)
-    ch = logging.StreamHandler()
-    ch.setLevel(log_level)
-    ch.setFormatter(log_format)
-    root_logger.addHandler(ch)
+    if not quiet:
+        # Console Handler (always use log_level)
+        ch = logging.StreamHandler()
+        ch.setLevel(log_level)
+        ch.setFormatter(log_format)
+        root_logger.addHandler(ch)
 
     # Logfile Handler
     fh = logging.FileHandler(log_file)

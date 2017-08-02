@@ -61,9 +61,10 @@ def crawl(seeds, username, password, outf=None, dout=None):
     while not q.empty():
         iteration_count += 1
         cqsize = q.qsize()
-        if int(config['main']['log_level']) >= logging.WARNING and iteration_count > 1:
-            pbar = tqdm(total=cqsize, unit='dev')
-            pbar.set_description('Iteration %s' % str(iteration_count))
+        if not config['main']['quiet']:
+            if int(config['main']['log_level']) >= logging.WARNING and iteration_count > 1:
+                pbar = tqdm(total=cqsize, unit='dev')
+                pbar.set_description('Iteration %s' % str(iteration_count))
 
         # Launch threads on everything in queue to scrape
         while not q.empty():
@@ -71,10 +72,11 @@ def crawl(seeds, username, password, outf=None, dout=None):
             qsize = q.qsize()
 
             # Progress bar on warning level or above
-            if int(config['main']['log_level']) >= logging.WARNING and iteration_count > 1:
-                p_int = (cqsize - qsize)
-                pbar.update(1)
-                print('\r', end='')
+            if not config['main']['quiet']:
+                if int(config['main']['log_level']) >= logging.WARNING and iteration_count > 1:
+                    p_int = (cqsize - qsize)
+                    pbar.update(1)
+                    print('\r', end='')
 
             if crawl_count > int(config['main']['max_crawl']):
                 logger.warning('Max Devices allowed already crawled')

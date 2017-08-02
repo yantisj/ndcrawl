@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(description='Discover Network Topology via CDP/
 parser.add_argument('-seed', metavar="switch1[,switch2]", help="Seed devices to start crawl")
 parser.add_argument('-nei_file', metavar="file", help="Output Neighbors to File", type=str)
 parser.add_argument('-dev_file', metavar="file", help="Output Neighbors to File", type=str)
+parser.add_argument('--quiet', help='Quiet output, log to file only', action="store_true")
 parser.add_argument("--seed_os", metavar='cisco_nxos', help="Netmiko OS type for seed devices",
                     type=str)
 parser.add_argument("--user", metavar='username', help="Username to execute as",
@@ -56,7 +57,12 @@ else:
 config['main']['log_level'] = str(log_level)
 topology.config = config
 
-init_logging(log_level, config['main']['log_file'])
+if args.quiet:
+    config['main']['quiet'] = '1'
+else:
+    config['main']['quiet'] = ''
+
+init_logging(log_level, config['main']['log_file'], args.quiet)
 
 if args.max_crawl:
     config['main']['max_crawl'] = str(args.max_crawl)
@@ -64,14 +70,36 @@ if args.max_crawl:
 if args.seed_os:
     config['main']['seed_os'] = args.seed_os
 
+if not args.seed:
+    if 'seeds' in config['main'] and config['main']['seeds']:
+        args.seed = config['main']['seeds']
+
 if args.seed:
 
+
     if not args.user:
-        logger.warning('Must provide a username')
-        sys.exit(1)
-    password = getpass.getpass('Password for ' + args.user + ': ')
+        if 'username' in config['main'] and config['main']['username']:
+            args.user = config['main']['username']
+        else:
+            logger.critical('Must provide a username or define in config_file')
+            sys.exit(1)
+    if 'password' in config['main'] and config['main']['password']:
+        password = config['main']['password']
+    else:
+        password = getpass.getpass('Password for ' + args.user + ': ')
+
+    # Check for output files from config
+    if not args.nei_file:
+        if 'nei_file' in config['main'] and config['main']['nei_file']:
+            args.nei_file = config['main']['nei_file']
+    if not args.dev_file:
+        if 'dev_file' in config['main'] and config['main']['dev_file']:
+            args.dev_file = config['main']['dev_file']
 
     seeds = args.seed.split(',')
+
+    if not args.quiet:
+        print('Beginning Crawl on:', args.seed)
 
     topology.crawl(seeds, args.user, password, outf=args.nei_file, dout=args.dev_file)
 else:
