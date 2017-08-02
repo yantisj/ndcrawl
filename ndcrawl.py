@@ -16,6 +16,8 @@ parser.add_argument('-nei_file', metavar="file", help="Output Neighbors to File"
 parser.add_argument('-dev_file', metavar="file", help="Output Neighbors to File", type=str)
 parser.add_argument("--user", metavar='username', help="Username to execute as",
                     type=str)
+parser.add_argument("--max_crawl", metavar='int', help="Max devices to crawl (default 10000)",
+                    type=int)
 parser.add_argument("--conf", metavar='file', help="Alternate Config File",
                     type=str)
 parser.add_argument("--debug", help="Set debugging level", type=int)
@@ -39,9 +41,14 @@ logger = logging.getLogger('ndcrawl.py')
 # Local config files to import
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
+
+config['main']['log_level'] = str(log_level)
 topology.config = config
 
 init_logging(log_level, config['main']['log_file'])
+
+if args.max_crawl:
+    config['main']['max_crawl'] = str(args.max_crawl)
 
 if args.seed:
 

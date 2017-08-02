@@ -2,10 +2,13 @@
 import logging
 import re
 import csv
+import sys
 import threading
 from time import sleep
 from queue import Queue
 from . import execute
+#from progressbar import ProgressBar
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,10 @@ def crawl(seeds, username, password, outf=None, dout=None):
     # Distance tracking
     distances = dict()
 
+    # Counter
+    crawl_count = 0
+    iteration_count = 0
+
     # Queue up seed devices
     for s in seeds:
         q.put(s)
@@ -49,15 +56,33 @@ def crawl(seeds, username, password, outf=None, dout=None):
         distances[s] = 0
 
     # Outer Queue, starts inner queue and then adds all unvisited neighbors to queue when
-    # inner queue is empty
+    # inner queue is empty. Each iteration of outer queue visits all next level neighbors
+    # at once inside inner queue via threads.
     while not q.empty():
+        iteration_count += 1
+        cqsize = q.qsize()
+        if int(config['main']['log_level']) >= logging.WARNING and iteration_count > 1:
+            pbar = tqdm(total=cqsize, unit='dev')
+            pbar.set_description('Iteration %s' % str(iteration_count))
 
         # Launch threads on everything in queue to scrape
         while not q.empty():
             current = q.get()
+            qsize = q.qsize()
+
+            # Progress bar on warning level or above
+            if int(config['main']['log_level']) >= logging.WARNING and iteration_count > 1:
+                p_int = (cqsize - qsize)
+                pbar.update(1)
+                print('\r', end='')
+
+            if crawl_count > int(config['main']['max_crawl']):
+                logger.warning('Max Devices allowed already crawled')
 
             # Only scrape unvisited devices
-            if current not in visited:
+            elif current not in visited:
+                crawl_count += 1
+
                 visited.append(current)
                 while threading.activeCount() > int(config['main']['thread_count']):
                     qsize = q.qsize()
@@ -89,7 +114,7 @@ def crawl(seeds, username, password, outf=None, dout=None):
                     some_thread.join(timeout=wait_timer)
                     wait_timer = 1
                 else:
-                    logger.warning('Thread running long time, ignoring: %s: %s', tid, str(some_thread))
+                    logger.info('Thread running long time, ignoring: %s: %s', tid, str(some_thread))
 
         # Process output queue of neighbor data and look for new neighbors to visit
         logger.info('Processing output queue')
@@ -117,9 +142,11 @@ def crawl(seeds, username, password, outf=None, dout=None):
                 # New Neighbor that has not been scraped, only scrape IOS/NXOS for now
                 if rname not in visited:
                     if n['os'] == 'cisco_nxos':
-                        q.put(rname)
+                        if rname not in q.queue:
+                            q.put(rname)
                     elif n['os'] == 'cisco_ios':
-                        q.put(rname)
+                        if rname not in q.queue:
+                            q.put(rname)
                     else:
                         visited.append(rname)
                 else:
@@ -143,13 +170,17 @@ def crawl(seeds, username, password, outf=None, dout=None):
         f.close()
 
     if dout:
-        fieldnames = ['device_id', 'ipv4', 'platform', 'os']
+        fieldnames = ['device_id', 'ipv4', 'platform', 'os', 'distance']
         f = open(dout, 'w')
         dw = csv.DictWriter(f, fieldnames=fieldnames)
         dw.writeheader()
-        for d in devices:
+        for d in sorted(devices):
+            dist = 100
+            if devices[d]['remote_device_id'] in distances:
+                dist = distances[devices[d]['remote_device_id']]
             dd = {'device_id': devices[d]['remote_device_id'], 'ipv4': devices[d]['ipv4'], \
-                  'platform': devices[d]['platform'], 'os': devices[d]['os']}
+                  'platform': devices[d]['platform'], 'os': devices[d]['os'], \
+                  'distance': dist}
             dw.writerow(dd)
             #print(d, devices[d]['remote_device_id'], devices[d]['ipv4'], devices[d]['os'], devices[d]['platform'])
 
@@ -184,7 +215,7 @@ def gather_nd(**kwargs):
                 logger.warning('Failed to scrape %s: %s', dname, str(e))
     if nd:
         out_q.put(nd)
-    logger.info('Completed Scraping %s: %s', dname, tid)
+        logger.info('Completed Scraping %s: %s', dname, tid)
 
 def scrape_device(device, host, username, password):
     """ Scrape a device and return the results as list of neighbors """
@@ -229,7 +260,7 @@ def parse_cdp(cdp, device):
                 if not re.search(config['main']['ignore_regex'], current['remote_device_id']):
                     nd.append(current.copy())
                 else:
-                    logger.warning('Regex Ignore on %s neighbor from %s', \
+                    logger.info('Regex Ignore on %s neighbor from %s', \
                                     current['remote_device_id'], current['local_device_id'])
             current = dict()
             rname = devid.group(1)
