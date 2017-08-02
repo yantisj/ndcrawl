@@ -76,8 +76,7 @@ if not args.seed:
     if 'seeds' in config['main'] and config['main']['seeds']:
         args.seed = config['main']['seeds']
 
-if args.seed:
-
+if args.seed or args.seed_file:
 
     if not args.user:
         if 'username' in config['main'] and config['main']['username']:
