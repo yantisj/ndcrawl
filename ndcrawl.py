@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os
+import os.path
 import sys
 import argparse
 import configparser
@@ -29,6 +29,10 @@ args = parser.parse_args()
 
 log_level = logging.WARNING
 logging.getLogger('paramiko').setLevel(logging.WARNING)
+
+if args.v and not args.debug:
+    args.debug = 1
+
 if args.debug:
     if args.debug:
         log_level = logging.INFO
@@ -42,7 +46,12 @@ logger = logging.getLogger('ndcrawl.py')
 
 # Local config files to import
 config = configparser.ConfigParser()
-config.read(CONFIG_FILE)
+
+if os.path.exists(CONFIG_FILE):
+    config.read(CONFIG_FILE)
+else:
+    logger.warning('Loading Sample Config File: Please create ndcrawl.ini from ndcrawl-sample.ini')
+    config.read('ndcrawl-sample.ini')
 
 config['main']['log_level'] = str(log_level)
 topology.config = config

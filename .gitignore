@@ -5,3 +5,4 @@ start-env.sh
 *.log
 output/
 *.csv
+ndcrawl.ini
