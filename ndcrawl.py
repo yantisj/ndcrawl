@@ -17,6 +17,8 @@ parser.add_argument('-dev_file', metavar="file", help="Output Neighbors to File"
 parser.add_argument('--quiet', help='Quiet output, log to file only', action="store_true")
 parser.add_argument("--seed_os", metavar='cisco_nxos', help="Netmiko OS type for seed devices",
                     type=str)
+parser.add_argument("--seed_file", metavar='file', help="Seed devices from a file, one per line",
+                    type=str)
 parser.add_argument("--user", metavar='username', help="Username to execute as",
                     type=str)
 parser.add_argument("--max_crawl", metavar='int', help="Max devices to crawl (default 10000)",
@@ -96,10 +98,18 @@ if args.seed:
         if 'dev_file' in config['main'] and config['main']['dev_file']:
             args.dev_file = config['main']['dev_file']
 
-    seeds = args.seed.split(',')
+    if args.seed_file:
+        seeds = list()
+        f = open(args.seed_file, 'r')
+        for l in f:
+            l = l.strip()
+            if l:
+                seeds.append(l)
+    else:
+        seeds = args.seed.split(',')
 
     if not args.quiet:
-        print('Beginning crawl on:', args.seed)
+        print('Beginning crawl on:', ', '.join(seeds))
 
     topology.crawl(seeds, args.user, password, outf=args.nei_file, dout=args.dev_file)
 else:
