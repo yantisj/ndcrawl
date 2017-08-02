@@ -51,7 +51,7 @@ config = configparser.ConfigParser()
 if os.path.exists(CONFIG_FILE):
     config.read(CONFIG_FILE)
 else:
-    logger.warning('Loading Sample Config File: Please create ndcrawl.ini from ndcrawl-sample.ini')
+    logger.warning('Warning: Loading Sample Config File: Please create ndcrawl.ini from ndcrawl-sample.ini')
     config.read('ndcrawl-sample.ini')
 
 config['main']['log_level'] = str(log_level)
@@ -81,7 +81,7 @@ if args.seed:
         if 'username' in config['main'] and config['main']['username']:
             args.user = config['main']['username']
         else:
-            logger.critical('Must provide a username or define in config_file')
+            print('\nError: Must provide --user if not using config file\n')
             sys.exit(1)
     if 'password' in config['main'] and config['main']['password']:
         password = config['main']['password']
@@ -99,8 +99,9 @@ if args.seed:
     seeds = args.seed.split(',')
 
     if not args.quiet:
-        print('Beginning Crawl on:', args.seed)
+        print('Beginning crawl on:', args.seed)
 
     topology.crawl(seeds, args.user, password, outf=args.nei_file, dout=args.dev_file)
 else:
+    print('\nError: Must provide -seed devices if not using config file\n')
     parser.print_help()
