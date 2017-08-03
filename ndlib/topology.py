@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 config = dict()
 
-def crawl(seeds, username, password, outf=None, dout=None):
+def crawl(seeds, username, password, outf=None, dout=None, ngout=None):
     'Crawl CDP/LLDP Neighbors to build a topology'
 
     # Queue for devices to scrape next
@@ -190,6 +190,22 @@ def crawl(seeds, username, password, outf=None, dout=None):
             if 'logged_in' in nw:
                 nw.pop('logged_in')
             dw.writerow(nw)
+        f.close()
+
+    # Output NetGrph CSV File
+    if ngout:
+        fieldnames = ['LocalName', 'LocalPort', 'RemoteName', 'RemotePort']
+        f = open(ngout, 'w')
+        dw = csv.DictWriter(f, fieldnames=fieldnames)
+        dw.writeheader()
+        for n in neighbors:
+
+            ng = {'LocalName': n['local_device_id'].split('.')[0],
+                  'LocalPort': n['local_int'],
+                  'RemoteName': n['remote_device_id'].split('.')[0],
+                  'RemotePort': n['remote_int'],
+                 }
+            dw.writerow(ng)
         f.close()
 
     if dout:
@@ -432,7 +448,7 @@ def parse_lldp(lldp_det, lldp_sum, device):
             else:
                 current['platform'] = platform.group(1)
         if desc:
-            current['description'] = desc.group(1)
+            current['description'] = desc.group(1).strip()
         if nxos:
             current['os'] = 'cisco_nxos'
         if ios:
