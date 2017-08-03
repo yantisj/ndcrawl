@@ -53,6 +53,7 @@ def crawl(seeds, username, password, outf=None, dout=None):
         devices[s]['ipv4'] = s
         devices[s]['os'] = config['main']['seed_os']
         devices[s]['platform'] = 'Unknown'
+        devices[s]['logged_in'] = True
         distances[s] = 0
 
     # Outer Queue, starts inner queue and then adds all unvisited neighbors to queue when
@@ -138,7 +139,24 @@ def crawl(seeds, username, password, outf=None, dout=None):
                 n['distance'] = distances[n['local_device_id']]
                 neighbors.append(n)
                 rname = n['remote_device_id']
-                devices[rname] = n
+
+                # Save device to devices
+                if rname not in devices:
+                    devices[rname] = n
+                # Update unknown devices, restore logged_in variable
+                elif devices[rname]['platform'] == 'Unknown':
+                    logged_in = False
+                    if 'logged_in' in devices[rname]:
+                        logged_in = devices[rname]['logged_in']
+                    devices[rname] = n
+                    devices[rname]['logged_in'] = logged_in
+
+                # Save logged_in as False initially, update on another pass
+                if 'logged_in' not in devices[n['local_device_id']]:
+                    devices[n['local_device_id']]['logged_in'] = False
+
+                # Local device always was logged in to
+                devices[n['local_device_id']]['logged_in'] = True
                 logger.info('Processing Out_q entry %s on %s', rname, n['local_device_id'])
 
                 # New Neighbor that has not been scraped, only scrape IOS/NXOS for now
@@ -168,11 +186,14 @@ def crawl(seeds, username, password, outf=None, dout=None):
         dw = csv.DictWriter(f, fieldnames=fieldnames)
         dw.writeheader()
         for n in neighbors:
-            dw.writerow(n)
+            nw = n.copy()
+            if 'logged_in' in nw:
+                nw.pop('logged_in')
+            dw.writerow(nw)
         f.close()
 
     if dout:
-        fieldnames = ['device_id', 'ipv4', 'platform', 'os', 'distance']
+        fieldnames = ['device_id', 'ipv4', 'platform', 'os', 'distance', 'logged_in']
         f = open(dout, 'w')
         dw = csv.DictWriter(f, fieldnames=fieldnames)
         dw.writeheader()
@@ -180,11 +201,15 @@ def crawl(seeds, username, password, outf=None, dout=None):
             dist = 100
             if devices[d]['remote_device_id'] in distances:
                 dist = distances[devices[d]['remote_device_id']]
+
+            logged_in = False
+            if 'logged_in' in devices[d] and devices[d]['logged_in']:
+                logged_in = True
+
             dd = {'device_id': devices[d]['remote_device_id'], 'ipv4': devices[d]['ipv4'], \
                   'platform': devices[d]['platform'], 'os': devices[d]['os'], \
-                  'distance': dist}
+                  'distance': dist, 'logged_in': logged_in}
             dw.writerow(dd)
-            #print(d, devices[d]['remote_device_id'], devices[d]['ipv4'], devices[d]['os'], devices[d]['platform'])
 
 
 def gather_nd(**kwargs):
