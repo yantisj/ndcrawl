@@ -7,6 +7,7 @@ import logging
 import getpass
 from ndlib.log import init_logging
 from ndlib import topology
+from ndlib import parse
 
 CONFIG_FILE = 'ndcrawl.ini'
 
@@ -59,6 +60,7 @@ else:
 
 config['main']['log_level'] = str(log_level)
 topology.config = config
+parse.config = config
 
 if args.quiet:
     config['main']['quiet'] = '1'
